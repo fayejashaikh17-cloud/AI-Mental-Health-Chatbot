@@ -1,0 +1,196 @@
+import React from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Slider } from '@/components/ui/slider';
+import { useSettings } from '@/contexts/SettingsContext';
+import { useToast } from '@/hooks/use-toast';
+import { clearAllData, exportData } from '@/lib/storage';
+import { jsPDF } from 'jspdf'; // ← added jsPDF import
+
+const Settings: React.FC = () => {
+  const { 
+    theme, 
+    toggleTheme, 
+    aiTone, 
+    setAiTone, 
+    responseLength, 
+    setResponseLength 
+  } = useSettings();
+  
+  const { toast } = useToast();
+
+const handleExportData = () => {
+  const jsonData = exportData(); // now returns array
+  if (!jsonData.length) {
+    toast({
+      title: "Export failed",
+      description: "No data available to export.",
+      variant: "destructive"
+    });
+    return;
+  }
+
+  const doc = new jsPDF();
+  doc.text("MindMate AI - Data Export", 10, 10);
+  let y = 20;
+
+  jsonData.forEach((item: any, index: number) => {
+    doc.text(`Entry #${index + 1}`, 10, y); y += 6;
+    if (item.date) { doc.text(`Date: ${item.date}`, 10, y); y += 6; }
+    if (item.mood) { doc.text(`Mood: ${item.mood}`, 10, y); y += 6; }
+    if (item.Diary) {
+      const lines = doc.splitTextToSize(`Diary: ${item.Diary}`, 180);
+      doc.text(lines, 10, y);
+      y += lines.length * 6 + 4;
+    }
+    y += 4;
+    if (y > 280) { doc.addPage(); y = 10; }
+  });
+
+  doc.save("mindmate-data.pdf");
+
+  toast({
+    description: "Your data has been exported successfully as PDF!",
+  });
+};
+
+
+
+  const handleClearData = () => {
+    if (confirm("Are you sure you want to clear all your data? This action cannot be undone.")) {
+      clearAllData();
+      toast({
+        description: "All data has been cleared from your device.",
+      });
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <h1 className="text-2xl md:text-3xl font-bold mb-6">Settings</h1>
+      
+      <Card className="mb-6 overflow-hidden">
+        <div className="p-6 border-b border-border">
+          <h2 className="text-lg font-semibold mb-4">Appearance</h2>
+          
+          {/* Theme toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="theme-toggle">Dark Mode</Label>
+              <p className="text-sm text-muted-foreground">Toggle between light and dark theme</p>
+            </div>
+            <Switch
+              id="theme-toggle"
+              checked={theme === 'dark'}
+              onCheckedChange={toggleTheme}
+            />
+          </div>
+        </div>
+        
+        <div className="p-6 border-b border-border">
+          <h2 className="text-lg font-semibold mb-4">AI Assistant</h2>
+          
+          {/* AI Tone setting */}
+          <div className="mb-6">
+            <Label className="mb-2">Assistant Tone</Label>
+            <p className="text-sm text-muted-foreground mb-3">Choose how your AI assistant communicates with you</p>
+            
+            <RadioGroup value={aiTone} onValueChange={(value) => setAiTone(value as any)}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className={`p-3 border rounded-lg cursor-pointer ${aiTone === 'friendly' ? 'bg-primary/10 border-primary' : 'border-border'}`}>
+                  <RadioGroupItem value="friendly" id="friendly" className="sr-only" />
+                  <Label htmlFor="friendly" className="cursor-pointer flex items-center">
+                    <span className={`w-4 h-4 mr-2 rounded-full border ${aiTone === 'friendly' ? 'border-primary' : 'border-muted-foreground'} flex items-center justify-center`}>
+                      {aiTone === 'friendly' && <span className="w-2 h-2 bg-primary rounded-full"></span>}
+                    </span>
+                    Friendly
+                  </Label>
+                </div>
+                
+                <div className={`p-3 border rounded-lg cursor-pointer ${aiTone === 'clinical' ? 'bg-primary/10 border-primary' : 'border-border'}`}>
+                  <RadioGroupItem value="clinical" id="clinical" className="sr-only" />
+                  <Label htmlFor="clinical" className="cursor-pointer flex items-center">
+                    <span className={`w-4 h-4 mr-2 rounded-full border ${aiTone === 'clinical' ? 'border-primary' : 'border-muted-foreground'} flex items-center justify-center`}>
+                      {aiTone === 'clinical' && <span className="w-2 h-2 bg-primary rounded-full"></span>}
+                    </span>
+                    Clinical
+                  </Label>
+                </div>
+                
+                <div className={`p-3 border rounded-lg cursor-pointer ${aiTone === 'spiritual' ? 'bg-primary/10 border-primary' : 'border-border'}`}>
+                  <RadioGroupItem value="spiritual" id="spiritual" className="sr-only" />
+                  <Label htmlFor="spiritual" className="cursor-pointer flex items-center">
+                    <span className={`w-4 h-4 mr-2 rounded-full border ${aiTone === 'spiritual' ? 'border-primary' : 'border-muted-foreground'} flex items-center justify-center`}>
+                      {aiTone === 'spiritual' && <span className="w-2 h-2 bg-primary rounded-full"></span>}
+                    </span>
+                    Spiritual
+                  </Label>
+                </div>
+              </div>
+            </RadioGroup>
+          </div>
+          
+          {/* Response Length setting */}
+          <div>
+            <Label className="mb-2">Response Length</Label>
+            <p className="text-sm text-muted-foreground mb-3">Choose how detailed the AI responses should be</p>
+            
+            <div className="relative w-full px-1">
+              <Slider
+                value={[responseLength]}
+                min={1}
+                max={3}
+                step={1}
+                onValueChange={(value) => setResponseLength(value[0])}
+              />
+              <div className="flex justify-between text-xs text-muted-foreground px-1 mt-1">
+                <span>Brief</span>
+                <span>Balanced</span>
+                <span>Detailed</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <h2 className="text-lg font-semibold mb-4">Data Management</h2>
+          
+          {/* Data export */}
+          <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
+            <div>
+              <h3 className="font-medium">Export Your Data</h3>
+              <p className="text-sm text-muted-foreground">Download a copy of all your Diary entries and mood data</p>
+            </div>
+            <Button variant="outline" onClick={handleExportData}>
+              <i className="fas fa-download mr-1"></i> Export as PDF
+            </Button>
+          </div>
+          
+          {/* Clear data */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-medium">Clear All Data</h3>
+              <p className="text-sm text-muted-foreground">Remove all your stored data from this device</p>
+            </div>
+            <Button 
+              variant="destructive" 
+              onClick={handleClearData}
+            >
+              <i className="fas fa-trash-alt mr-1"></i> Clear Data
+            </Button>
+          </div>
+        </div>
+      </Card>
+      
+      <div className="text-center text-sm text-muted-foreground">
+        <p>MindMate AI v1.0.0</p>
+        <p className="mt-1">Created with ❤️ for better mental health</p>
+      </div>
+    </div>
+  );
+};
+
+export default Settings;
