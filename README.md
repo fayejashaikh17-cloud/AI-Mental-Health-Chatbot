@@ -39,5 +39,4 @@ This project is an AI-powered chatbot that provides emotional support by analyzi
    http://localhost:3000
    (or)
    http://127.0.0.1:5000
-3. Open browser  
-   http://localhost:3000
+
